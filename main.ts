@@ -77,13 +77,27 @@ setInterval(() => {
   console.log("🔄 Stats reset.");
 }, 7 * 24 * 60 * 60 * 1000); // weekly reset
 
-// Start the bot
-const token = Deno.env.get("DISCORD_BOT_TOKEN");
-if (!token) {
-  console.error("❌ DISCORD_BOT_TOKEN not set in environment variables.");
-  throw new Error("Missing DISCORD_BOT_TOKEN in environment."); // ✅ safe for Deno Deploy
-}
-client.login(token);
+// ✅ Wrap everything in a serve() to access environment variables in Deno Deploy
+let botStarted = false;
 
-// Keep Deno Deploy (or others) alive
-serve(() => new Response("Bot is online."));
+serve(async () => {
+  if (!botStarted) {
+    const token = Deno.env.get("DISCORD_BOT_TOKEN");
+
+    if (!token) {
+      console.error("❌ DISCORD_BOT_TOKEN not set.");
+      return new Response("Token missing.", { status: 500 });
+    }
+
+    try {
+      await client.login(token);
+      botStarted = true;
+      console.log("✅ Bot logged in.");
+    } catch (err) {
+      console.error("❌ Failed to log in bot:", err);
+      return new Response("Login failed.", { status: 500 });
+    }
+  }
+
+  return new Response("Bot is online.");
+});
