@@ -74,5 +74,18 @@ client.on("messageCreate", async (message) => {
 // 🔑 Login with token from environment
 client.login(Deno.env.get("DISCORD_BOT_TOKEN"));
 
-// ✅ Keep the process alive forever so Deno Deploy doesn't shut it down
-setInterval(() => {}, 1000 * 60); // empty interval every minute
+// ✅ Keep-alive Express server for Node.js deployment environments
+if (process.env.DENO_REGION) {
+  console.log("🌐 Deno Deploy (or similar env) detected — setting up Express keep-alive server.");
+
+  const app = express();
+
+  app.get("/", (req, res) => {
+    res.send("Bot is running!");
+  });
+
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`✅ Keep-alive server listening on port ${PORT}`);
+  });
+}
