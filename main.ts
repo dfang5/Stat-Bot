@@ -1,3 +1,6 @@
+// main.ts
+
+// 🚫 Removed dotenv — instead use Deno.env.get("DISCORD_BOT_TOKEN") and set env vars in Deno Deploy dashboard
 import { Client, GatewayIntentBits } from 'npm:discord.js@14';
 import express from 'npm:express@4';
 
@@ -23,8 +26,8 @@ client.once('ready', () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 });
 
-let messageStats = {}; // { guildId: { userId: count } }
-let totalMessages = {}; // { guildId: count }
+let messageStats: Record<string, Record<string, number>> = {};
+let totalMessages: Record<string, number> = {};
 
 function resetStats() {
   messageStats = {};
@@ -80,5 +83,5 @@ client.on('messageCreate', async (message) => {
   message.channel.send(reply);
 });
 
-// 🔑 Login using Deno environment variable
+// 🔑 Login with token from env
 client.login(Deno.env.get("DISCORD_BOT_TOKEN"));
