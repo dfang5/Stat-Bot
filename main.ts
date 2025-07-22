@@ -1,19 +1,17 @@
-// main.ts
+// ✅ Use ESM imports via npm: specifiers
+import { Client, GatewayIntentBits } from "npm:discord.js@14";
+import express from "npm:express@4";
 
-// 🚫 Removed dotenv — instead use Deno.env.get("DISCORD_BOT_TOKEN") and set env vars in Deno Deploy dashboard
-import { Client, GatewayIntentBits } from 'npm:discord.js@14';
-import express from 'npm:express@4';
-
-// 🟢 Setup Express server for UptimeRobot pinging
+// 🟢 Express server for UptimeRobot pings
 const app = express();
-const PORT = Deno.env.get('PORT') || 3000;
+const PORT = Deno.env.get("PORT") || 3000;
 
-app.get('/', (_req, res) => res.send('Bot is alive!'));
+app.get("/", (_req, res) => res.send("Bot is alive!"));
 app.listen(PORT, () => {
   console.log(`🌐 Web server running on port ${PORT}`);
 });
 
-// 🟢 Setup Discord bot
+// 🟢 Discord bot setup
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -22,24 +20,24 @@ const client = new Client({
   ],
 });
 
-client.once('ready', () => {
+client.once("ready", () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 });
 
-let messageStats: Record<string, Record<string, number>> = {};
-let totalMessages: Record<string, number> = {};
+let messageStats = {}; // { guildId: { userId: count } }
+let totalMessages = {}; // { guildId: count }
 
 function resetStats() {
   messageStats = {};
   totalMessages = {};
-  console.log('🔄 Stats reset.');
+  console.log("🔄 Stats reset.");
 }
 
 // 🔁 Reset every 7 days
 setInterval(resetStats, 7 * 24 * 60 * 60 * 1000);
 
 // Track messages
-client.on('messageCreate', (message) => {
+client.on("messageCreate", (message) => {
   if (message.author.bot || !message.guild) return;
 
   const guildId = message.guild.id;
@@ -54,10 +52,10 @@ client.on('messageCreate', (message) => {
 });
 
 // Handle `!generalstats` command
-client.on('messageCreate', async (message) => {
+client.on("messageCreate", async (message) => {
   if (message.author.bot || !message.guild) return;
 
-  if (!message.content.startsWith('!generalstats')) return;
+  if (!message.content.startsWith("!generalstats")) return;
 
   const guildId = message.guild.id;
   const guildStats = messageStats[guildId] || {};
@@ -67,7 +65,7 @@ client.on('messageCreate', async (message) => {
   const topFive = sortedUsers.slice(0, 5);
 
   if (topFive.length === 0) {
-    message.channel.send('No stats available yet for this server.');
+    message.channel.send("No stats available yet for this server.");
     return;
   }
 
@@ -83,5 +81,5 @@ client.on('messageCreate', async (message) => {
   message.channel.send(reply);
 });
 
-// 🔑 Login with token from env
+// 🔑 Login with token from environment
 client.login(Deno.env.get("DISCORD_BOT_TOKEN"));
