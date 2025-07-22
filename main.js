@@ -2,15 +2,6 @@
 import { Client, GatewayIntentBits } from "npm:discord.js@14";
 import express from "npm:express@4";
 
-// 🟢 Express server for UptimeRobot pings
-const app = express();
-const PORT = Deno.env.get("PORT") || 3000;
-
-app.get("/", (_req, res) => res.send("Bot is alive!"));
-app.listen(PORT, () => {
-  console.log(`🌐 Web server running on port ${PORT}`);
-});
-
 // 🟢 Discord bot setup
 const client = new Client({
   intents: [
