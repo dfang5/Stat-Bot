@@ -1,6 +1,13 @@
-import { Client, GatewayIntentBits } from "npm:discord.js@14";
-import { serve } from "https://deno.land/std/http/server.ts";
+// Import from discord.js and std HTTP server
+import { Client, GatewayIntentBits, User, Message } from "npm:discord.js@14";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
+// Define types for tracking stats
+type GuildStats = Record<string, number>; // userId -> message count
+type MessageStats = Record<string, GuildStats>; // guildId -> GuildStats
+type TotalMessages = Record<string, number>; // guildId -> total messages
+
+// Initialize client
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -9,14 +16,19 @@ const client = new Client({
   ],
 });
 
-let messageStats = {};
-let totalMessages = {};
+// Stats tracking
+let messageStats: MessageStats = {};
+let totalMessages: TotalMessages = {};
 
+// Bot ready
 client.once("ready", () => {
-  console.log(`🤖 Logged in as ${client.user.tag}`);
+  if (client.user) {
+    console.log(`🤖 Logged in as ${client.user.tag}`);
+  }
 });
 
-client.on("messageCreate", async (message) => {
+// Handle new messages
+client.on("messageCreate", async (message: Message) => {
   if (message.author.bot || !message.guild) return;
 
   const guildId = message.guild.id;
@@ -31,10 +43,10 @@ client.on("messageCreate", async (message) => {
 
   if (!message.content.startsWith("!generalstats")) return;
 
-  const guildStats = messageStats[guildId] || {};
-  const totalMsgCount = totalMessages[guildId] || 0;
+  const guildStats = messageStats[guildId];
+  const totalMsgCount = totalMessages[guildId];
 
-  const sortedUsers = Object.entries(guildStats).sort((a, b) => b[1] - a[1]);
+  const sortedUsers = Object.entries(guildStats).sort(([, a], [, b]) => b - a);
   const topFive = sortedUsers.slice(0, 5);
 
   if (topFive.length === 0) {
@@ -46,11 +58,11 @@ client.on("messageCreate", async (message) => {
   reply += `Total messages sent: **${totalMsgCount}**\n\n`;
   reply += `**Top 5 users by messages sent:**\n`;
 
-  for (const [userId, count] of topFive) {
+  for (const [uid, count] of topFive) {
     try {
-      const user = await client.users.fetch(userId);
+      const user: User = await client.users.fetch(uid);
       reply += `- **${user.tag}**: ${count} messages\n`;
-    } catch (err) {
+    } catch (_err) {
       reply += `- **Unknown User**: ${count} messages\n`;
     }
   }
@@ -58,13 +70,20 @@ client.on("messageCreate", async (message) => {
   message.channel.send(reply);
 });
 
+// Reset stats weekly
 setInterval(() => {
   messageStats = {};
   totalMessages = {};
   console.log("🔄 Stats reset.");
-}, 7 * 24 * 60 * 60 * 1000); // weekly
+}, 7 * 24 * 60 * 60 * 1000); // weekly reset
 
-client.login(Deno.env.get("DISCORD_BOT_TOKEN"));
+// Start the bot
+const token = Deno.env.get("DISCORD_BOT_TOKEN");
+if (!token) {
+  console.error("❌ DISCORD_BOT_TOKEN not set in environment variables.");
+  Deno.exit(1);
+}
+client.login(token);
 
-// 🔥 This keeps Deno Deploy alive properly without binding ports
+// Keep Deno Deploy (or others) alive
 serve(() => new Response("Bot is online."));
