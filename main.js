@@ -1,9 +1,8 @@
+// ✅ Use ESM imports via npm: specifiers
 import { Client, GatewayIntentBits } from "npm:discord.js@14";
+import express from "npm:express@4";
 
-// 🛡️ Track if we've already logged in
-let hasLoggedIn = false;
-
-// 🧠 Create client
+// 🟢 Discord bot setup
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -12,18 +11,23 @@ const client = new Client({
   ],
 });
 
-// 🧮 Stats tracking
-let messageStats: Record<string, Record<string, number>> = {};
-let totalMessages: Record<string, number> = {};
+client.once("ready", () => {
+  console.log(`🤖 Logged in as ${client.user.tag}`);
+});
 
-// ♻️ Reset every week
-setInterval(() => {
+let messageStats = {}; // { guildId: { userId: count } }
+let totalMessages = {}; // { guildId: count }
+
+function resetStats() {
   messageStats = {};
   totalMessages = {};
-  console.log("🔄 Weekly stats reset.");
-}, 7 * 24 * 60 * 60 * 1000);
+  console.log("🔄 Stats reset.");
+}
 
-// 📨 Count messages
+// 🔁 Reset every 7 days
+setInterval(resetStats, 7 * 24 * 60 * 60 * 1000);
+
+// Track messages
 client.on("messageCreate", (message) => {
   if (message.author.bot || !message.guild) return;
 
@@ -38,26 +42,27 @@ client.on("messageCreate", (message) => {
   totalMessages[guildId]++;
 });
 
-// 📊 Handle command
+// Handle `!generalstats` command
 client.on("messageCreate", async (message) => {
   if (message.author.bot || !message.guild) return;
+
   if (!message.content.startsWith("!generalstats")) return;
 
   const guildId = message.guild.id;
   const guildStats = messageStats[guildId] || {};
-  const total = totalMessages[guildId] || 0;
+  const totalMsgCount = totalMessages[guildId] || 0;
 
-  const sorted = Object.entries(guildStats).sort((a, b) => b[1] - a[1]);
-  const topFive = sorted.slice(0, 5);
+  const sortedUsers = Object.entries(guildStats).sort((a, b) => b[1] - a[1]);
+  const topFive = sortedUsers.slice(0, 5);
 
   if (topFive.length === 0) {
-    message.channel.send("No stats available yet.");
+    message.channel.send("No stats available yet for this server.");
     return;
   }
 
   let reply = `📊 **Stats for this server (WEEKLY):**\n`;
-  reply += `Total messages sent: **${total}**\n\n`;
-  reply += `**Top 5 users:**\n`;
+  reply += `Total messages sent: **${totalMsgCount}**\n\n`;
+  reply += `**Top 5 users by messages sent:**\n`;
 
   for (const [userId, count] of topFive) {
     const user = await client.users.fetch(userId);
@@ -67,20 +72,5 @@ client.on("messageCreate", async (message) => {
   message.channel.send(reply);
 });
 
-// ✅ Login once when client is ready
-client.once("ready", () => {
-  console.log(`🤖 Logged in as ${client.user?.tag}`);
-});
-
-// ✅ Make sure login happens once only
-if (!hasLoggedIn) {
-  hasLoggedIn = true;
-  client.login(Deno.env.get("DISCORD_BOT_TOKEN"));
-}
-
-// 🌐 REQUIRED FOR DENO DEPLOY
-Deno.serve(() => {
-  return new Response("Bot is running!", {
-    headers: { "Content-Type": "text/plain" },
-  });
-});
+// 🔑 Login with token from environment
+client.login(Deno.env.get("DISCORD_BOT_TOKEN"));
