@@ -1,12 +1,11 @@
-require('dotenv').config();
-const { Client, GatewayIntentBits } = require('discord.js');
-const express = require('express');
+import { Client, GatewayIntentBits } from 'npm:discord.js@14';
+import express from 'npm:express@4';
 
 // 🟢 Setup Express server for UptimeRobot pinging
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Deno.env.get('PORT') || 3000;
 
-app.get('/', (req, res) => res.send('Bot is alive!'));
+app.get('/', (_req, res) => res.send('Bot is alive!'));
 app.listen(PORT, () => {
   console.log(`🌐 Web server running on port ${PORT}`);
 });
@@ -51,7 +50,7 @@ client.on('messageCreate', (message) => {
   totalMessages[guildId]++;
 });
 
-// Handle `!stats` command
+// Handle `!generalstats` command
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
 
@@ -81,4 +80,5 @@ client.on('messageCreate', async (message) => {
   message.channel.send(reply);
 });
 
-client.login(process.env.DISCORD_BOT_TOKEN);
+// 🔑 Login using Deno environment variable
+client.login(Deno.env.get("DISCORD_BOT_TOKEN"));
