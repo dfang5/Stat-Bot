@@ -1,6 +1,5 @@
 // ✅ Use ESM imports via npm: specifiers
 import { Client, GatewayIntentBits } from "npm:discord.js@14";
-import express from "npm:express@4";
 
 // 🟢 Discord bot setup
 const client = new Client({
@@ -74,3 +73,6 @@ client.on("messageCreate", async (message) => {
 
 // 🔑 Login with token from environment
 client.login(Deno.env.get("DISCORD_BOT_TOKEN"));
+
+// ✅ Keep the process alive forever so Deno Deploy doesn't shut it down
+setInterval(() => {}, 1000 * 60); // empty interval every minute
