@@ -1,0 +1,27 @@
+name: Auto Commit to Restart Deno
+
+on:
+  schedule:
+    - cron: "*/1 * * * *"  # runs every 5 minutes
+
+jobs:
+  restart-deno:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Make dummy change
+        run: |
+          echo "// ping $(date)" >> heartbeat.ts
+
+      - name: Commit and push
+        run: |
+          git config user.name "Deno Bot Restarter"
+          git config user.email "deno-bot@null.com"
+          git add heartbeat.ts
+          git commit -m "🔁 Auto-ping to trigger redeploy"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
