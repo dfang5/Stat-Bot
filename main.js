@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits } from "npm:discord.js@14";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
-// Core bot function
 function startBot() {
   const client = new Client({
     intents: [
@@ -13,38 +13,33 @@ function startBot() {
   let messageStats = {};
   let totalMessages = {};
 
-  // Log when bot is ready
   client.once("ready", () => {
     console.log(`🤖 Logged in as ${client.user.tag}`);
   });
 
-  // Listen for new messages
   client.on("messageCreate", async (message) => {
     if (message.author.bot || !message.guild) return;
 
     const guildId = message.guild.id;
     const userId = message.author.id;
 
-    // Initialize storage if needed
     if (!messageStats[guildId]) messageStats[guildId] = {};
     if (!messageStats[guildId][userId]) messageStats[guildId][userId] = 0;
     if (!totalMessages[guildId]) totalMessages[guildId] = 0;
 
-    // Increment message counts
     messageStats[guildId][userId]++;
     totalMessages[guildId]++;
 
-    // Command handler
     if (!message.content.startsWith("!generalstats")) return;
 
-    const guildStats = messageStats[guildId];
-    const totalMsgCount = totalMessages[guildId];
+    const guildStats = messageStats[guildId] || {};
+    const totalMsgCount = totalMessages[guildId] || 0;
 
     const sortedUsers = Object.entries(guildStats).sort((a, b) => b[1] - a[1]);
     const topFive = sortedUsers.slice(0, 5);
 
     if (topFive.length === 0) {
-      await message.channel.send("No stats available yet for this server.");
+      message.channel.send("No stats available yet for this server.");
       return;
     }
 
@@ -56,12 +51,12 @@ function startBot() {
       try {
         const user = await client.users.fetch(userId);
         reply += `- **${user.tag}**: ${count} messages\n`;
-      } catch {
+      } catch (err) {
         reply += `- **Unknown User**: ${count} messages\n`;
       }
     }
 
-    await message.channel.send(reply);
+    message.channel.send(reply);
   });
 
   // Weekly reset timer
@@ -69,16 +64,15 @@ function startBot() {
     messageStats = {};
     totalMessages = {};
     console.log("🔄 Stats reset.");
-  }, 7 * 24 * 60 * 60 * 1000); // 1 week
+  }, 7 * 24 * 60 * 60 * 1000);
 
-  // Login bot with token from env vars
   client.login(Deno.env.get("DISCORD_BOT_TOKEN"));
 }
 
-// Run bot only if script is main module
+// Ensure the bot starts, AND the HTTP server keeps the deploy alive
 if (import.meta.main) {
   startBot();
 
-  // Keep-alive HTTP handler for Deno Deploy
-  Deno.serve(() => new Response("Bot is alive!"));
+  // Add Deno Deploy keep-alive HTTP server
+  serve((_req) => new Response("Bot is active!"));
 }
