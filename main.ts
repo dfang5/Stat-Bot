@@ -81,7 +81,7 @@ setInterval(() => {
 const token = Deno.env.get("DISCORD_BOT_TOKEN");
 if (!token) {
   console.error("❌ DISCORD_BOT_TOKEN not set in environment variables.");
-  Deno.exit(1);
+  throw new Error("Missing DISCORD_BOT_TOKEN in environment."); // ✅ safe for Deno Deploy
 }
 client.login(token);
 
