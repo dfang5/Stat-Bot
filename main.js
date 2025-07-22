@@ -1,7 +1,21 @@
-// ✅ Use ESM imports via npm: specifiers
 import { Client, GatewayIntentBits } from "npm:discord.js@14";
+import express from "npm:express@4";
 
-// 🟢 Discord bot setup
+// ✅ Setup express app (whether or not it's needed by Deno)
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Dummy route to keep the process 'alive'
+app.get("/", (req, res) => {
+  res.send("Bot is running!");
+});
+
+// 👇 Start express server immediately so Deno sees a persistent process
+app.listen(PORT, () => {
+  console.log(`✅ Express keep-alive server listening on port ${PORT}`);
+});
+
+// 🟢 Create and configure the bot
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -10,12 +24,8 @@ const client = new Client({
   ],
 });
 
-client.once("ready", () => {
-  console.log(`🤖 Logged in as ${client.user.tag}`);
-});
-
-let messageStats = {}; // { guildId: { userId: count } }
-let totalMessages = {}; // { guildId: count }
+let messageStats = {};
+let totalMessages = {};
 
 function resetStats() {
   messageStats = {};
@@ -44,7 +54,6 @@ client.on("messageCreate", (message) => {
 // Handle `!generalstats` command
 client.on("messageCreate", async (message) => {
   if (message.author.bot || !message.guild) return;
-
   if (!message.content.startsWith("!generalstats")) return;
 
   const guildId = message.guild.id;
@@ -71,21 +80,9 @@ client.on("messageCreate", async (message) => {
   message.channel.send(reply);
 });
 
-// 🔑 Login with token from environment
-client.login(Deno.env.get("DISCORD_BOT_TOKEN"));
+// 🔐 Login only ONCE
+client.once("ready", () => {
+  console.log(`🤖 Logged in as ${client.user.tag}`);
+});
 
-// ✅ Keep-alive Express server for Node.js deployment environments
-if (process.env.DENO_REGION) {
-  console.log("🌐 Deno Deploy (or similar env) detected — setting up Express keep-alive server.");
-
-  const app = express();
-
-  app.get("/", (req, res) => {
-    res.send("Bot is running!");
-  });
-
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`✅ Keep-alive server listening on port ${PORT}`);
-  });
-}
+client.login(process.env.DISCORD_BOT_TOKEN);
