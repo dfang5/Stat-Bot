@@ -1,7 +1,6 @@
-// ✅ Use ESM imports via npm specifiers
 import { Client, GatewayIntentBits } from "npm:discord.js@14";
 
-// 🟢 Main Bot Start Function
+// Core bot function
 function startBot() {
   const client = new Client({
     intents: [
@@ -11,22 +10,14 @@ function startBot() {
     ],
   });
 
-  let messageStats = {}; // { guildId: { userId: count } }
-  let totalMessages = {}; // { guildId: count }
+  let messageStats = {};
+  let totalMessages = {};
 
   client.once("ready", () => {
     console.log(`🤖 Logged in as ${client.user.tag}`);
   });
 
-  function resetStats() {
-    messageStats = {};
-    totalMessages = {};
-    console.log("🔄 Stats reset.");
-  }
-
-  setInterval(resetStats, 7 * 24 * 60 * 60 * 1000);
-
-  client.on("messageCreate", (message) => {
+  client.on("messageCreate", async (message) => {
     if (message.author.bot || !message.guild) return;
 
     const guildId = message.guild.id;
@@ -38,14 +29,9 @@ function startBot() {
 
     messageStats[guildId][userId]++;
     totalMessages[guildId]++;
-  });
-
-  client.on("messageCreate", async (message) => {
-    if (message.author.bot || !message.guild) return;
 
     if (!message.content.startsWith("!generalstats")) return;
 
-    const guildId = message.guild.id;
     const guildStats = messageStats[guildId] || {};
     const totalMsgCount = totalMessages[guildId] || 0;
 
@@ -62,15 +48,28 @@ function startBot() {
     reply += `**Top 5 users by messages sent:**\n`;
 
     for (const [userId, count] of topFive) {
-      const user = await client.users.fetch(userId);
-      reply += `- **${user.tag}**: ${count} messages\n`;
+      try {
+        const user = await client.users.fetch(userId);
+        reply += `- **${user.tag}**: ${count} messages\n`;
+      } catch (err) {
+        reply += `- **Unknown User**: ${count} messages\n`;
+      }
     }
 
     message.channel.send(reply);
   });
 
+  // Weekly reset timer
+  setInterval(() => {
+    messageStats = {};
+    totalMessages = {};
+    console.log("🔄 Stats reset.");
+  }, 7 * 24 * 60 * 60 * 1000); // 1 week in milliseconds
+
   client.login(Deno.env.get("DISCORD_BOT_TOKEN"));
 }
 
-// 🚀 Launch once
-startBot();
+// Only run when deployed directly, not imported
+if (import.meta.main) {
+  startBot();
+}
