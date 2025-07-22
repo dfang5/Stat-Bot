@@ -1,56 +1,53 @@
 // ✅ Use ESM imports via npm specifiers
 import { Client, GatewayIntentBits } from "npm:discord.js@14";
 
-// 🟢 Discord bot setup
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-  ],
-});
+// ✅ Use globalThis flag to prevent double login (across isolates in Deno Deploy)
+if (!globalThis.__STAT_BOT_INITIALIZED__) {
+  globalThis.__STAT_BOT_INITIALIZED__ = true;
 
-// ✅ Prevent double login using a boot flag
-let isBooted = false;
+  // 🟢 Discord bot setup
+  const client = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+    ],
+  });
 
-if (!isBooted) {
-  isBooted = true;
+  // 📦 Message tracking maps
+  let messageStats = {};       // { guildId: { userId: count } }
+  let totalMessages = {};      // { guildId: total }
 
+  // ♻️ Weekly stat reset
+  setInterval(() => {
+    messageStats = {};
+    totalMessages = {};
+    console.log("🔄 Stats reset.");
+  }, 7 * 24 * 60 * 60 * 1000); // Every 7 days
+
+  // 📨 On bot ready
   client.once("ready", () => {
     console.log(`🤖 Logged in as ${client.user.tag}`);
   });
 
-  let messageStats = {}; // { guildId: { userId: count } }
-  let totalMessages = {}; // { guildId: count }
-
-  function resetStats() {
-    messageStats = {};
-    totalMessages = {};
-    console.log("🔄 Stats reset.");
-  }
-
-  // 🔁 Reset every 7 days
-  setInterval(resetStats, 7 * 24 * 60 * 60 * 1000);
-
-  // Track messages
+  // 📊 Track messages
   client.on("messageCreate", (message) => {
     if (message.author.bot || !message.guild) return;
 
     const guildId = message.guild.id;
     const userId = message.author.id;
 
-    if (!messageStats[guildId]) messageStats[guildId] = {};
-    if (!messageStats[guildId][userId]) messageStats[guildId][userId] = 0;
-    if (!totalMessages[guildId]) totalMessages[guildId] = 0;
+    messageStats[guildId] ??= {};
+    messageStats[guildId][userId] ??= 0;
+    totalMessages[guildId] ??= 0;
 
     messageStats[guildId][userId]++;
     totalMessages[guildId]++;
   });
 
-  // Handle `!generalstats` command
+  // 📈 Respond to !generalstats command
   client.on("messageCreate", async (message) => {
     if (message.author.bot || !message.guild) return;
-
     if (!message.content.startsWith("!generalstats")) return;
 
     const guildId = message.guild.id;
@@ -77,6 +74,15 @@ if (!isBooted) {
     message.channel.send(reply);
   });
 
-  // 🔑 Login with token from environment
+  // 🔐 Login to Discord
   client.login(Deno.env.get("DISCORD_BOT_TOKEN"));
+}
+
+// 🛰️ Required for Deno Deploy to respond to health checks and not hang
+if (Deno.env.get("DENO_REGION")) {
+  Deno.serve(() =>
+    new Response("🛰️ Stat Bot active.", {
+      headers: { "Content-Type": "text/plain" },
+    })
+  );
 }
