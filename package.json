@@ -4,7 +4,8 @@
   "description": "A general-purpose command bot",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "build": "echo 'No build step needed.'"
   },
   "dependencies": {
     "discord.js": "^14.13.0",
