@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "build": "echo 'starting current build software.'"
   },
   "dependencies": {
     "discord.js": "^14.13.0",
